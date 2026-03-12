@@ -118,6 +118,13 @@
                 android:textColor="#2E7D32"
                 android:paddingBottom="12dp" />
 
+            <!-- Mapa de la ruta -->
+            <org.osmdroid.views.MapView
+                android:id="@+id/mapView"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_marginBottom="16dp" />
+
             <TextView
                 android:id="@+id/tvResultado"
                 android:layout_width="match_parent"

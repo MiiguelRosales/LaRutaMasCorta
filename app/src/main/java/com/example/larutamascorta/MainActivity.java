@@ -14,6 +14,14 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.osmdroid.config.Configuration;
+import org.osmdroid.util.GeoPoint;
+import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.views.overlay.Polyline;
+import org.osmdroid.api.IMapController;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -22,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private Spinner spinnerOrigen, spinnerDestino;
     private LinearLayout cardResultado;
     private TextView tvResultado;
+    private MapView mapView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +98,11 @@ public class MainActivity extends AppCompatActivity {
         Button btnCalcular = findViewById(R.id.btnCalcular);
         cardResultado   = findViewById(R.id.cardResultado);
         tvResultado     = findViewById(R.id.tvResultado);
+        mapView         = findViewById(R.id.mapView);
+
+        // Configurar OSMDroid
+        Configuration.getInstance().setUserAgentValue(getPackageName());
+        setupMap();
 
         List<String> cities = graph.getNodes();
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
@@ -104,6 +118,15 @@ public class MainActivity extends AppCompatActivity {
         }
 
         btnCalcular.setOnClickListener(v -> calcularRuta());
+    }
+
+    private void setupMap() {
+        mapView.setMultiTouchControls(true);
+        IMapController mapController = mapView.getController();
+        mapController.setZoom(5.5);
+        // Centrar en México
+        GeoPoint mexicoCenter = CityCoordinates.getMexicoCenterPoint();
+        mapController.setCenter(mexicoCenter);
     }
 
     // -------------------------------------------------------------------------
@@ -152,5 +175,94 @@ public class MainActivity extends AppCompatActivity {
         }
 
         tvResultado.setText(sb.toString());
+        
+        // Dibujar ruta en el mapa
+        drawRouteOnMap(result.path);
+    }
+
+    private void drawRouteOnMap(List<String> path) {
+        // Limpiar overlays anteriores
+        mapView.getOverlays().clear();
+        
+        if (path.isEmpty()) {
+            mapView.invalidate();
+            return;
+        }
+
+        // Crear lista de puntos geográficos
+        List<GeoPoint> routePoints = new ArrayList<>();
+        
+        for (String cityName : path) {
+            GeoPoint point = CityCoordinates.getCoordinates(cityName);
+            if (point != null) {
+                routePoints.add(point);
+                
+                // Agregar marcador para cada ciudad
+                Marker marker = new Marker(mapView);
+                marker.setPosition(point);
+                marker.setTitle(cityName);
+                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                mapView.getOverlays().add(marker);
+            }
+        }
+
+        // Dibujar la línea de la ruta
+        if (routePoints.size() > 1) {
+            Polyline line = new Polyline();
+            line.setPoints(routePoints);
+            line.setColor(0xFF1565C0); // Color azul
+            line.setWidth(5f);
+            mapView.getOverlays().add(0, line); // Agregar al inicio para que esté debajo de los marcadores
+        }
+
+        // Ajustar el zoom para mostrar toda la ruta
+        if (!routePoints.isEmpty()) {
+            // Calcular el centro y ajustar el zoom
+            double minLat = routePoints.stream().mapToDouble(GeoPoint::getLatitude).min().orElse(0);
+            double maxLat = routePoints.stream().mapToDouble(GeoPoint::getLatitude).max().orElse(0);
+            double minLon = routePoints.stream().mapToDouble(GeoPoint::getLongitude).min().orElse(0);
+            double maxLon = routePoints.stream().mapToDouble(GeoPoint::getLongitude).max().orElse(0);
+            
+            GeoPoint center = new GeoPoint(
+                (minLat + maxLat) / 2,
+                (minLon + maxLon) / 2
+            );
+            
+            IMapController mapController = mapView.getController();
+            mapController.setCenter(center);
+            
+            // Calcular zoom basado en la distancia
+            double latSpan = maxLat - minLat;
+            double lonSpan = maxLon - minLon;
+            double maxSpan = Math.max(latSpan, lonSpan);
+            
+            if (maxSpan < 1) {
+                mapController.setZoom(9.0);
+            } else if (maxSpan < 3) {
+                mapController.setZoom(7.5);
+            } else if (maxSpan < 6) {
+                mapController.setZoom(6.5);
+            } else {
+                mapController.setZoom(5.5);
+            }
+        }
+
+        mapView.invalidate();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mapView != null) {
+            mapView.onResume();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mapView != null) {
+            mapView.onPause();
+        }
     }
 }
