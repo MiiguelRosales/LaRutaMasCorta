@@ -1,20 +1,28 @@
 package com.example.larutamascorta;
 
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+
+import com.google.android.material.button.MaterialButton;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.util.GeoPoint;
@@ -33,8 +41,8 @@ public class MainActivity extends AppCompatActivity {
 
     private Graph graph;
     private Spinner spinnerOrigen, spinnerDestino;
-    private LinearLayout cardResultado;
-    private TextView tvResultado;
+    private View cardResultado;
+    private TextView tvResultado, tvDistanciaInfo, tvParadasInfo;
     private MapView mapView;
     private ScrollView scrollView;
 
@@ -43,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -53,25 +62,16 @@ public class MainActivity extends AppCompatActivity {
         setupViews();
     }
 
-    // -------------------------------------------------------------------------
-    // Construcción del grafo con ciudades mexicanas y distancias reales (km)
-    // -------------------------------------------------------------------------
-
     private void buildGraph() {
         graph = new Graph();
-
         String[] cities = {
             "Aguascalientes", "Ciudad de Mexico", "Guadalajara",
             "Leon", "Merida", "Monterrey", "Morelia",
             "Oaxaca", "Puebla", "Queretaro",
             "San Luis Potosi", "Toluca", "Veracruz"
         };
+        for (String city : cities) graph.addNode(city);
 
-        for (String city : cities) {
-            graph.addNode(city);
-        }
-
-        // Conexiones con distancias aproximadas en kilómetros
         graph.addEdge("Ciudad de Mexico", "Puebla",          135);
         graph.addEdge("Ciudad de Mexico", "Toluca",           65);
         graph.addEdge("Ciudad de Mexico", "Queretaro",       220);
@@ -94,36 +94,27 @@ public class MainActivity extends AppCompatActivity {
         graph.addEdge("Monterrey",        "Merida",         1500);
     }
 
-    // -------------------------------------------------------------------------
-    // Configuración de la UI
-    // -------------------------------------------------------------------------
-
     private void setupViews() {
         spinnerOrigen   = findViewById(R.id.spinnerOrigen);
         spinnerDestino  = findViewById(R.id.spinnerDestino);
-        Button btnCalcular = findViewById(R.id.btnCalcular);
+        MaterialButton btnCalcular = findViewById(R.id.btnCalcular);
         cardResultado   = findViewById(R.id.cardResultado);
         tvResultado     = findViewById(R.id.tvResultado);
+        tvDistanciaInfo = findViewById(R.id.tvDistanciaInfo);
+        tvParadasInfo   = findViewById(R.id.tvParadasInfo);
         mapView         = findViewById(R.id.mapView);
         scrollView      = findViewById(R.id.main);
 
-        // Configurar OSMDroid
         Configuration.getInstance().setUserAgentValue(getPackageName());
         setupMap();
 
         List<String> cities = graph.getNodes();
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, cities);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cities);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
         spinnerOrigen.setAdapter(adapter);
         spinnerDestino.setAdapter(adapter);
 
-        // Selección inicial diferente para origen y destino
-        if (cities.size() > 1) {
-            spinnerDestino.setSelection(1);
-        }
-
+        if (cities.size() > 1) spinnerDestino.setSelection(1);
         btnCalcular.setOnClickListener(v -> calcularRuta());
     }
 
@@ -131,105 +122,96 @@ public class MainActivity extends AppCompatActivity {
         mapView.setMultiTouchControls(true);
         IMapController mapController = mapView.getController();
         mapController.setZoom(5.5);
-        // Centrar en México
-        GeoPoint mexicoCenter = CityCoordinates.getMexicoCenterPoint();
-        mapController.setCenter(mexicoCenter);
-        
-        // Desactivar scroll del ScrollView cuando se toca el mapa
-        mapView.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                int action = event.getAction();
-                switch (action) {
-                    case MotionEvent.ACTION_DOWN:
-                    case MotionEvent.ACTION_MOVE:
-                        // Desactivar scroll del ScrollView
-                        scrollView.requestDisallowInterceptTouchEvent(true);
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        // Reactivar scroll del ScrollView
-                        scrollView.requestDisallowInterceptTouchEvent(false);
-                        break;
-                }
-                return false;
+        mapController.setCenter(CityCoordinates.getMexicoCenterPoint());
+
+        mapView.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                scrollView.requestDisallowInterceptTouchEvent(true);
             }
+            return false;
         });
     }
-
-    // -------------------------------------------------------------------------
-    // Lógica de cálculo y presentación de resultados
-    // -------------------------------------------------------------------------
 
     private void calcularRuta() {
         String origen  = (String) spinnerOrigen.getSelectedItem();
         String destino = (String) spinnerDestino.getSelectedItem();
 
-        cardResultado.setVisibility(View.VISIBLE);
-
         if (origen.equals(destino)) {
-            tvResultado.setText("El origen y el destino son el mismo lugar.");
+            cardResultado.setVisibility(View.GONE);
             return;
         }
 
         Graph.Result result = graph.dijkstra(origen, destino);
-
         if (result.path.isEmpty()) {
-            tvResultado.setText("No existe ruta entre " + origen + " y " + destino + ".");
+            cardResultado.setVisibility(View.GONE);
             return;
         }
 
-        // Construir texto del recorrido
-        StringBuilder sb = new StringBuilder();
-        sb.append("Ruta mas corta:\n\n");
+        cardResultado.setVisibility(View.VISIBLE);
+        tvDistanciaInfo.setText(result.totalDistance + " km");
+        tvParadasInfo.setText(String.valueOf(result.path.size()));
+
+        // Construir itinerario elegante con Spans
+        SpannableStringBuilder ssb = new SpannableStringBuilder();
+        int colorMain = ContextCompat.getColor(this, R.color.text_main);
+        int colorSub = ContextCompat.getColor(this, R.color.text_sub);
+        int colorPrimary = ContextCompat.getColor(this, R.color.primary);
+        int colorSecondary = ContextCompat.getColor(this, R.color.secondary);
 
         for (int i = 0; i < result.path.size(); i++) {
-            sb.append("  [ ").append(result.path.get(i)).append(" ]");
+            String city = result.path.get(i);
+            int start = ssb.length();
+            
+            if (i == 0) {
+                ssb.append("○ ").append(city).append("\n  ").append(getString(R.string.tag_origen));
+                ssb.setSpan(new ForegroundColorSpan(colorPrimary), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new RelativeSizeSpan(1.2f), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new StyleSpan(Typeface.BOLD), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new ForegroundColorSpan(colorSub), ssb.length() - getString(R.string.tag_origen).length(), ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else if (i == result.path.size() - 1) {
+                ssb.append("● ").append(city).append("\n  ").append(getString(R.string.tag_destino));
+                ssb.setSpan(new ForegroundColorSpan(colorSecondary), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new RelativeSizeSpan(1.2f), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new StyleSpan(Typeface.BOLD), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new ForegroundColorSpan(colorSub), ssb.length() - getString(R.string.tag_destino).length(), ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            } else {
+                ssb.append("⋮  ").append(city);
+                ssb.setSpan(new ForegroundColorSpan(Color.LTGRAY), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new ForegroundColorSpan(colorMain), start + 3, start + 3 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            
             if (i < result.path.size() - 1) {
-                sb.append("\n       |\n       v\n");
+                ssb.append("\n\n");
             }
         }
 
-        sb.append("\n\n");
-        sb.append("Distancia total : ").append(result.totalDistance).append(" km\n");
-        sb.append("Paradas totales : ").append(result.path.size());
-
-        if (result.path.size() > 2) {
-            sb.append("\nEscalas        : ");
-            for (int i = 1; i < result.path.size() - 1; i++) {
-                sb.append(result.path.get(i));
-                if (i < result.path.size() - 2) sb.append(", ");
-            }
-        }
-
-        tvResultado.setText(sb.toString());
-        
-        // Dibujar ruta en el mapa
+        tvResultado.setText(ssb);
         drawRouteOnMap(result.path);
+        
+        // Scroll suave al resultado
+        cardResultado.post(() -> scrollView.smoothScrollTo(0, cardResultado.getTop()));
     }
 
     private void drawRouteOnMap(List<String> path) {
-        // Limpiar overlays anteriores
         mapView.getOverlays().clear();
-        
-        if (path.isEmpty()) {
-            mapView.invalidate();
-            return;
-        }
-
-        // Crear lista de puntos geográficos
         List<GeoPoint> routePoints = new ArrayList<>();
         
-        for (String cityName : path) {
+        for (int i = 0; i < path.size(); i++) {
+            String cityName = path.get(i);
             GeoPoint point = CityCoordinates.getCoordinates(cityName);
             if (point != null) {
                 routePoints.add(point);
-                
-                // Agregar marcador para cada ciudad
                 Marker marker = new Marker(mapView);
                 marker.setPosition(point);
                 marker.setTitle(cityName);
                 marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+                
+                if (i == 0) {
+                    marker.setIcon(ContextCompat.getDrawable(this, android.R.drawable.ic_input_add));
+                } else if (i == path.size() - 1) {
+                    marker.setIcon(ContextCompat.getDrawable(this, android.R.drawable.ic_menu_directions));
+                }
+                
                 mapView.getOverlays().add(marker);
             }
         }
@@ -248,26 +230,28 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         if (road != null && road.mRouteHigh != null && road.mRouteHigh.size() > 0) {
                             Polyline roadOverlay = RoadManager.buildRoadOverlay(road);
-                            roadOverlay.getOutlinePaint().setColor(0xFF1565C0); // Color azul
-                            roadOverlay.getOutlinePaint().setStrokeWidth(10f);
+                            roadOverlay.getOutlinePaint().setColor(ContextCompat.getColor(this, R.color.primary));
+                            roadOverlay.getOutlinePaint().setStrokeWidth(12f);
                             mapView.getOverlays().add(0, roadOverlay);
                         } else {
-                            // Si falla el enrutamiento, dibujar línea recta como respaldo
+                            // Si falla el enrutamiento, dibujar línea geodésica como respaldo
                             Polyline line = new Polyline();
                             line.setPoints(routePoints);
-                            line.setColor(0xFF1565C0);
-                            line.setWidth(5f);
+                            line.setColor(ContextCompat.getColor(this, R.color.primary));
+                            line.setWidth(12f);
+                            line.setGeodesic(true);
                             mapView.getOverlays().add(0, line);
                         }
                         mapView.invalidate();
                     });
                 } catch (Exception e) {
-                    // En caso de error, dibujar línea recta como respaldo
+                    // En caso de error, dibujar línea geodésica como respaldo
                     runOnUiThread(() -> {
                         Polyline line = new Polyline();
                         line.setPoints(routePoints);
-                        line.setColor(0xFF1565C0);
-                        line.setWidth(5f);
+                        line.setColor(ContextCompat.getColor(this, R.color.primary));
+                        line.setWidth(12f);
+                        line.setGeodesic(true);
                         mapView.getOverlays().add(0, line);
                         mapView.invalidate();
                     });
@@ -275,54 +259,29 @@ public class MainActivity extends AppCompatActivity {
             }).start();
         }
 
-        // Ajustar el zoom para mostrar toda la ruta
         if (!routePoints.isEmpty()) {
-            // Calcular el centro y ajustar el zoom
-            double minLat = routePoints.stream().mapToDouble(GeoPoint::getLatitude).min().orElse(0);
-            double maxLat = routePoints.stream().mapToDouble(GeoPoint::getLatitude).max().orElse(0);
-            double minLon = routePoints.stream().mapToDouble(GeoPoint::getLongitude).min().orElse(0);
-            double maxLon = routePoints.stream().mapToDouble(GeoPoint::getLongitude).max().orElse(0);
-            
-            GeoPoint center = new GeoPoint(
-                (minLat + maxLat) / 2,
-                (minLon + maxLon) / 2
-            );
-            
-            IMapController mapController = mapView.getController();
-            mapController.setCenter(center);
-            
-            // Calcular zoom basado en la distancia
-            double latSpan = maxLat - minLat;
-            double lonSpan = maxLon - minLon;
-            double maxSpan = Math.max(latSpan, lonSpan);
-            
-            if (maxSpan < 1) {
-                mapController.setZoom(9.0);
-            } else if (maxSpan < 3) {
-                mapController.setZoom(7.5);
-            } else if (maxSpan < 6) {
-                mapController.setZoom(6.5);
-            } else {
-                mapController.setZoom(5.5);
+            double minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+            for (GeoPoint p : routePoints) {
+                if (p.getLatitude() < minLat) minLat = p.getLatitude();
+                if (p.getLatitude() > maxLat) maxLat = p.getLatitude();
+                if (p.getLongitude() < minLon) minLon = p.getLongitude();
+                if (p.getLongitude() > maxLon) maxLon = p.getLongitude();
             }
+            GeoPoint center = new GeoPoint((minLat + maxLat) / 2, (minLon + maxLon) / 2);
+            IMapController mapController = mapView.getController();
+            mapController.animateTo(center);
+            
+            double maxSpan = Math.max(maxLat - minLat, maxLon - minLon);
+            if (maxSpan < 1) mapController.setZoom(9.0);
+            else if (maxSpan < 3) mapController.setZoom(8.0);
+            else if (maxSpan < 6) mapController.setZoom(7.0);
+            else mapController.setZoom(6.0);
         }
-
         mapView.invalidate();
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        if (mapView != null) {
-            mapView.onResume();
-        }
-    }
-
+    protected void onResume() { super.onResume(); if (mapView != null) mapView.onResume(); }
     @Override
-    protected void onPause() {
-        super.onPause();
-        if (mapView != null) {
-            mapView.onPause();
-        }
-    }
+    protected void onPause() { super.onPause(); if (mapView != null) mapView.onPause(); }
 }

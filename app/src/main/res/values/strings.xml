@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">LaRutaMasCorta</string>
+    <string name="title_app">Explorador de Rutas</string>
+    <string name="subtitle_app">LOGÍSTICA INTELIGENTE</string>
+    <string name="label_origen">PUNTO DE PARTIDA</string>
+    <string name="label_destino">DESTINO FINAL</string>
+    <string name="btn_calcular">GENERAR MEJOR RUTA</string>
+    <string name="label_resultado">PLAN DE VIAJE</string>
+    <string name="label_distancia">DISTANCIA TOTAL</string>
+    <string name="label_paradas">PARADAS</string>
+    <string name="label_itinerario">ITINERARIO DETALLADO</string>
+    <string name="default_distancia">0 km</string>
+    <string name="default_paradas">0</string>
+    <string name="tag_origen">Punto de Inicio</string>
+    <string name="tag_destino">Llegada</string>
 </resources>
