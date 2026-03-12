@@ -1,141 +1,251 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#EEF2F7"
+    android:background="@color/background"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="24dp">
 
-        <!-- Título -->
+        <!-- Header Section -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="La Ruta Más Corta"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="#1565C0"
+            android:text="@string/title_app"
+            android:textSize="32sp"
+            android:fontFamily="sans-serif-black"
+            android:textColor="@color/primary"
             android:gravity="center"
-            android:paddingTop="20dp"
-            android:paddingBottom="4dp" />
+            android:paddingTop="16dp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Algoritmo de Dijkstra"
-            android:textSize="13sp"
-            android:textColor="#90A4AE"
+            android:text="@string/subtitle_app"
+            android:textSize="12sp"
+            android:letterSpacing="0.3"
+            android:textColor="@color/text_sub"
             android:gravity="center"
-            android:paddingBottom="28dp" />
+            android:paddingBottom="32dp" />
 
-        <!-- Card Origen -->
-        <LinearLayout
+        <!-- Selection Card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_background"
-            android:elevation="4dp"
-            android:padding="16dp"
-            android:layout_marginBottom="12dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="ORIGEN"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="#1565C0"
-                android:paddingBottom="8dp" />
-
-            <Spinner
-                android:id="@+id/spinnerOrigen"
-                android:layout_width="match_parent"
-                android:layout_height="48dp" />
-
-        </LinearLayout>
-
-        <!-- Card Destino -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/card_background"
-            android:elevation="4dp"
-            android:padding="16dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#E0E0E0"
             android:layout_marginBottom="24dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="DESTINO"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="#E53935"
-                android:paddingBottom="8dp" />
-
-            <Spinner
-                android:id="@+id/spinnerDestino"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="48dp" />
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
 
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_origen"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/accent"
+                    android:letterSpacing="0.1" />
 
-        <!-- Botón Calcular -->
-        <Button
+                <Spinner
+                    android:id="@+id/spinnerOrigen"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginBottom="16dp" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#F0F0F0"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_destino"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/secondary"
+                    android:letterSpacing="0.1" />
+
+                <Spinner
+                    android:id="@+id/spinnerDestino"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Action Button -->
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCalcular"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:text="Calcular Ruta Más Corta"
-            android:textSize="15sp"
+            android:layout_height="64dp"
+            android:text="@string/btn_calcular"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:backgroundTint="#1565C0"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="20dp" />
+            app:cornerRadius="18dp"
+            android:backgroundTint="@color/primary"
+            android:textColor="@color/white"
+            app:elevation="4dp"
+            android:layout_marginBottom="32dp" />
 
-        <!-- Card Resultado (oculto hasta calcular) -->
+        <!-- Result Section (Initially Hidden) -->
         <LinearLayout
             android:id="@+id/cardResultado"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/card_background"
-            android:elevation="4dp"
-            android:padding="20dp"
-            android:layout_marginBottom="24dp"
             android:visibility="gone">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="RESULTADO"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                android:textColor="#2E7D32"
-                android:paddingBottom="12dp" />
-
-            <!-- Mapa de la ruta -->
-            <org.osmdroid.views.MapView
-                android:id="@+id/mapView"
-                android:layout_width="match_parent"
-                android:layout_height="300dp"
+                android:text="@string/label_resultado"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/text_main"
                 android:layout_marginBottom="16dp" />
 
-            <TextView
-                android:id="@+id/tvResultado"
+            <!-- Stats Bar -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="15sp"
-                android:textColor="#263238"
-                android:lineSpacingMultiplier="1.6"
-                android:fontFamily="monospace" />
+                android:orientation="horizontal"
+                android:layout_marginBottom="20dp">
 
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    android:layout_marginEnd="8dp"
+                    app:cardBackgroundColor="#E8EAF6">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:gravity="center">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_distancia"
+                            android:textSize="10sp"
+                            android:textColor="@color/primary"
+                            android:letterSpacing="0.05" />
+                        <TextView
+                            android:id="@+id/tvDistanciaInfo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_distancia"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/primary" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp"
+                    android:layout_marginStart="8dp"
+                    app:cardBackgroundColor="#FFF3E0">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:gravity="center">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_paradas"
+                            android:textSize="10sp"
+                            android:textColor="@color/secondary"
+                            android:letterSpacing="0.05" />
+                        <TextView
+                            android:id="@+id/tvParadasInfo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/default_paradas"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/secondary" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Map and Itinerary Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="12dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="32dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <!-- Rounded Map Container -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="320dp"
+                        app:cardCornerRadius="28dp"
+                        app:cardElevation="0dp"
+                        android:layout_margin="2dp">
+                        <org.osmdroid.views.MapView
+                            android:id="@+id/mapView"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="28dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_itinerario"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_sub"
+                            android:letterSpacing="0.1"
+                            android:layout_marginBottom="20dp" />
+
+                        <TextView
+                            android:id="@+id/tvResultado"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textSize="17sp"
+                            android:textColor="@color/text_main"
+                            android:lineSpacingExtra="10dp"
+                            android:fontFamily="sans-serif-light" />
+
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
-
     </LinearLayout>
-
 </ScrollView>

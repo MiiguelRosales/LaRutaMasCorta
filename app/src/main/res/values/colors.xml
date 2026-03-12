@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="primary">#2D3250</color>
+    <color name="primary_variant">#424769</color>
+    <color name="secondary">#F6B17A</color>
+    <color name="accent">#7077A1</color>
+
+    <color name="background">#F1F3F8</color>
+    <color name="surface">#FFFFFF</color>
+
+    <color name="text_main">#1A1C2E</color>
+    <color name="text_sub">#6B728E</color>
+
+    <color name="route_line">#2D3250</color>
+    <color name="marker_origin">#4CAF50</color>
+    <color name="marker_destination">#F44336</color>
+    <color name="marker_stop">#FF9800</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
