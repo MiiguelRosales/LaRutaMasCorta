@@ -22,6 +22,9 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.Polyline;
 import org.osmdroid.api.IMapController;
+import org.osmdroid.bonuspack.routing.OSRMRoadManager;
+import org.osmdroid.bonuspack.routing.Road;
+import org.osmdroid.bonuspack.routing.RoadManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -231,13 +234,45 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Dibujar la línea de la ruta
+        // Dibujar la ruta realista usando el servicio de enrutamiento OSRM
         if (routePoints.size() > 1) {
-            Polyline line = new Polyline();
-            line.setPoints(routePoints);
-            line.setColor(0xFF1565C0); // Color azul
-            line.setWidth(5f);
-            mapView.getOverlays().add(0, line); // Agregar al inicio para que esté debajo de los marcadores
+            // Ejecutar en un hilo separado para no bloquear la UI
+            new Thread(() -> {
+                try {
+                    RoadManager roadManager = new OSRMRoadManager(this, "LaRutaMasCorta/1.0");
+                    
+                    // Obtener la ruta completa desde OSRM que sigue las carreteras
+                    Road road = roadManager.getRoad(new ArrayList<>(routePoints));
+                    
+                    // Actualizar la UI en el hilo principal
+                    runOnUiThread(() -> {
+                        if (road != null && road.mRouteHigh != null && road.mRouteHigh.size() > 0) {
+                            Polyline roadOverlay = RoadManager.buildRoadOverlay(road);
+                            roadOverlay.getOutlinePaint().setColor(0xFF1565C0); // Color azul
+                            roadOverlay.getOutlinePaint().setStrokeWidth(10f);
+                            mapView.getOverlays().add(0, roadOverlay);
+                        } else {
+                            // Si falla el enrutamiento, dibujar línea recta como respaldo
+                            Polyline line = new Polyline();
+                            line.setPoints(routePoints);
+                            line.setColor(0xFF1565C0);
+                            line.setWidth(5f);
+                            mapView.getOverlays().add(0, line);
+                        }
+                        mapView.invalidate();
+                    });
+                } catch (Exception e) {
+                    // En caso de error, dibujar línea recta como respaldo
+                    runOnUiThread(() -> {
+                        Polyline line = new Polyline();
+                        line.setPoints(routePoints);
+                        line.setColor(0xFF1565C0);
+                        line.setWidth(5f);
+                        mapView.getOverlays().add(0, line);
+                        mapView.invalidate();
+                    });
+                }
+            }).start();
         }
 
         // Ajustar el zoom para mostrar toda la ruta
