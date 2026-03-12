@@ -1,10 +1,12 @@
 package com.example.larutamascorta;
 
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -31,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout cardResultado;
     private TextView tvResultado;
     private MapView mapView;
+    private ScrollView scrollView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
         cardResultado   = findViewById(R.id.cardResultado);
         tvResultado     = findViewById(R.id.tvResultado);
         mapView         = findViewById(R.id.mapView);
+        scrollView      = findViewById(R.id.main);
 
         // Configurar OSMDroid
         Configuration.getInstance().setUserAgentValue(getPackageName());
@@ -127,6 +131,27 @@ public class MainActivity extends AppCompatActivity {
         // Centrar en México
         GeoPoint mexicoCenter = CityCoordinates.getMexicoCenterPoint();
         mapController.setCenter(mexicoCenter);
+        
+        // Desactivar scroll del ScrollView cuando se toca el mapa
+        mapView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction();
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+                    case MotionEvent.ACTION_MOVE:
+                        // Desactivar scroll del ScrollView
+                        scrollView.requestDisallowInterceptTouchEvent(true);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        // Reactivar scroll del ScrollView
+                        scrollView.requestDisallowInterceptTouchEvent(false);
+                        break;
+                }
+                return false;
+            }
+        });
     }
 
     // -------------------------------------------------------------------------
