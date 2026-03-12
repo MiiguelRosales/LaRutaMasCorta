@@ -4,11 +4,11 @@ plugins {
 
 android {
     namespace = "com.example.larutamascorta"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.larutamascorta"
-        minSdk = 34
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
