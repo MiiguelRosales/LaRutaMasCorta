@@ -20,5 +20,7 @@
     <string name="default_tipo_camino">-</string>
     <string name="default_combustible">0 L · 0 kg CO2</string>
     <string name="tag_origen">Punto de Inicio</string>
+    <string name="tag_parada">Parada técnica</string>
     <string name="tag_destino">Llegada</string>
+    <string name="label_siguiente_tramo">Siguiente tramo</string>
 </resources>

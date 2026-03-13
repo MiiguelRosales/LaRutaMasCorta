@@ -2,15 +2,12 @@ package com.example.larutamascorta;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.style.ForegroundColorSpan;
-import android.text.style.RelativeSizeSpan;
-import android.text.style.StyleSpan;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -23,6 +20,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 
 import org.osmdroid.config.Configuration;
 import org.osmdroid.util.GeoPoint;
@@ -43,8 +41,9 @@ public class MainActivity extends AppCompatActivity {
     private Graph graph;
     private Spinner spinnerOrigen, spinnerDestino;
     private View cardResultado;
-    private TextView tvResultado, tvDistanciaInfo, tvParadasInfo;
+    private TextView tvDistanciaInfo, tvParadasInfo;
     private TextView tvTiempoInfo, tvCostoInfo, tvTipoCaminoInfo, tvCombustibleInfo;
+    private LinearLayout itineraryContainer;
     private MapView mapView;
     private ScrollView scrollView;
 
@@ -107,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
         spinnerDestino  = findViewById(R.id.spinnerDestino);
         MaterialButton btnCalcular = findViewById(R.id.btnCalcular);
         cardResultado   = findViewById(R.id.cardResultado);
-        tvResultado     = findViewById(R.id.tvResultado);
+        itineraryContainer = findViewById(R.id.itineraryContainer);
         tvDistanciaInfo = findViewById(R.id.tvDistanciaInfo);
         tvParadasInfo   = findViewById(R.id.tvParadasInfo);
         tvTiempoInfo    = findViewById(R.id.tvTiempoInfo);
@@ -176,45 +175,170 @@ public class MainActivity extends AppCompatActivity {
         tvTipoCaminoInfo.setText(roadType);
         tvCombustibleInfo.setText(String.format(Locale.getDefault(), "%.1f L · %.1f kg CO2", fuelLiters, co2Kg));
 
-        // Construir itinerario elegante con Spans
-        SpannableStringBuilder ssb = new SpannableStringBuilder();
-        int colorMain = ContextCompat.getColor(this, R.color.text_main);
-        int colorSub = ContextCompat.getColor(this, R.color.text_sub);
-        int colorPrimary = ContextCompat.getColor(this, R.color.primary);
-        int colorSecondary = ContextCompat.getColor(this, R.color.secondary);
-
-        for (int i = 0; i < result.path.size(); i++) {
-            String city = result.path.get(i);
-            int start = ssb.length();
-            
-            if (i == 0) {
-                ssb.append("○ ").append(city).append("\n  ").append(getString(R.string.tag_origen));
-                ssb.setSpan(new ForegroundColorSpan(colorPrimary), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ssb.setSpan(new RelativeSizeSpan(1.2f), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ssb.setSpan(new StyleSpan(Typeface.BOLD), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ssb.setSpan(new ForegroundColorSpan(colorSub), ssb.length() - getString(R.string.tag_origen).length(), ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else if (i == result.path.size() - 1) {
-                ssb.append("● ").append(city).append("\n  ").append(getString(R.string.tag_destino));
-                ssb.setSpan(new ForegroundColorSpan(colorSecondary), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ssb.setSpan(new RelativeSizeSpan(1.2f), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ssb.setSpan(new StyleSpan(Typeface.BOLD), start + 2, start + 2 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ssb.setSpan(new ForegroundColorSpan(colorSub), ssb.length() - getString(R.string.tag_destino).length(), ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            } else {
-                ssb.append("⋮  ").append(city);
-                ssb.setSpan(new ForegroundColorSpan(Color.LTGRAY), start, start + 1, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ssb.setSpan(new ForegroundColorSpan(colorMain), start + 3, start + 3 + city.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            
-            if (i < result.path.size() - 1) {
-                ssb.append("\n\n");
-            }
-        }
-
-        tvResultado.setText(ssb);
+        renderItineraryTimeline(result.path);
         drawRouteOnMap(result.path);
         
         // Scroll suave al resultado
         cardResultado.post(() -> scrollView.smoothScrollTo(0, cardResultado.getTop()));
+    }
+
+    private void renderItineraryTimeline(List<String> path) {
+        itineraryContainer.removeAllViews();
+
+        for (int i = 0; i < path.size(); i++) {
+            String city = path.get(i);
+            boolean isOrigin = i == 0;
+            boolean isDestination = i == path.size() - 1;
+            int dotColor = isOrigin
+                    ? ContextCompat.getColor(this, R.color.primary)
+                    : (isDestination
+                    ? ContextCompat.getColor(this, R.color.secondary)
+                    : ContextCompat.getColor(this, R.color.accent));
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            row.setLayoutParams(rowParams);
+            if (!isDestination) {
+                rowParams.bottomMargin = dp(12);
+            }
+
+            LinearLayout rail = new LinearLayout(this);
+            rail.setOrientation(LinearLayout.VERTICAL);
+            rail.setGravity(android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL);
+            LinearLayout.LayoutParams railParams = new LinearLayout.LayoutParams(dp(28), LinearLayout.LayoutParams.MATCH_PARENT);
+            rail.setLayoutParams(railParams);
+
+            View dot = new View(this);
+            LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(dp(12), dp(12));
+            dotParams.topMargin = dp(14);
+            dot.setLayoutParams(dotParams);
+            dot.setBackground(createCircleDrawable(dotColor, Color.WHITE, dp(2)));
+            rail.addView(dot);
+
+            if (!isDestination) {
+                View connector = new View(this);
+                LinearLayout.LayoutParams connectorParams = new LinearLayout.LayoutParams(dp(2), dp(72));
+                connectorParams.topMargin = dp(8);
+                connector.setLayoutParams(connectorParams);
+                connector.setBackgroundColor(adjustAlpha(ContextCompat.getColor(this, R.color.text_sub), 0.22f));
+                rail.addView(connector);
+            }
+
+            MaterialCardView cityCard = new MaterialCardView(this);
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+            );
+            cityCard.setLayoutParams(cardParams);
+            cityCard.setRadius(dp(14));
+            cityCard.setCardElevation(0f);
+            cityCard.setStrokeWidth(dp(1));
+
+            if (isOrigin) {
+                cityCard.setCardBackgroundColor(Color.parseColor("#EEF2FF"));
+                cityCard.setStrokeColor(Color.parseColor("#D2DAFF"));
+            } else if (isDestination) {
+                cityCard.setCardBackgroundColor(Color.parseColor("#FFF3E6"));
+                cityCard.setStrokeColor(Color.parseColor("#FFE0BF"));
+            } else {
+                cityCard.setCardBackgroundColor(Color.WHITE);
+                cityCard.setStrokeColor(Color.parseColor("#E6E9F2"));
+            }
+
+            LinearLayout content = new LinearLayout(this);
+            content.setOrientation(LinearLayout.VERTICAL);
+            content.setPadding(dp(14), dp(12), dp(14), dp(12));
+
+            TextView cityName = new TextView(this);
+            cityName.setText(city);
+            cityName.setTextSize(21f / getResources().getDisplayMetrics().scaledDensity);
+            cityName.setTypeface(Typeface.DEFAULT_BOLD);
+            cityName.setTextColor(ContextCompat.getColor(this, R.color.text_main));
+            content.addView(cityName);
+
+            TextView chip = new TextView(this);
+            chip.setText(isOrigin ? getString(R.string.tag_origen) : (isDestination ? getString(R.string.tag_destino) : getString(R.string.tag_parada)));
+            chip.setTextSize(11f);
+            chip.setTypeface(Typeface.DEFAULT_BOLD);
+            chip.setTextColor(isDestination
+                    ? ContextCompat.getColor(this, R.color.secondary)
+                    : ContextCompat.getColor(this, R.color.primary));
+            chip.setPadding(dp(8), dp(4), dp(8), dp(4));
+            chip.setBackground(createPillDrawable(
+                    isDestination ? Color.parseColor("#FFF0E1") : Color.parseColor("#E8EEFF"),
+                    isDestination ? Color.parseColor("#FFD7B0") : Color.parseColor("#C9D8FF")
+            ));
+            LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            chipParams.topMargin = dp(8);
+            chip.setLayoutParams(chipParams);
+            content.addView(chip);
+
+            if (!isDestination) {
+                int segmentKm = graph.getDistanceBetween(path.get(i), path.get(i + 1));
+                double segmentHours = estimateTravelHours(Math.max(segmentKm, 0), 0);
+
+                TextView segmentInfo = new TextView(this);
+                segmentInfo.setText(String.format(
+                        Locale.getDefault(),
+                        "%s: %d km · %s",
+                        getString(R.string.label_siguiente_tramo),
+                        segmentKm,
+                        formatDuration(segmentHours)
+                ));
+                segmentInfo.setTextSize(12f);
+                segmentInfo.setTextColor(ContextCompat.getColor(this, R.color.text_sub));
+                LinearLayout.LayoutParams segmentParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+                segmentParams.topMargin = dp(10);
+                segmentInfo.setLayoutParams(segmentParams);
+                content.addView(segmentInfo);
+            }
+
+            cityCard.addView(content);
+            row.addView(rail);
+            row.addView(cityCard);
+            itineraryContainer.addView(row);
+        }
+    }
+
+    private GradientDrawable createCircleDrawable(int fillColor, int strokeColor, int strokeWidth) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.OVAL);
+        drawable.setColor(fillColor);
+        drawable.setStroke(strokeWidth, strokeColor);
+        return drawable;
+    }
+
+    private GradientDrawable createPillDrawable(int fillColor, int strokeColor) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.RECTANGLE);
+        drawable.setCornerRadius(dp(999));
+        drawable.setColor(fillColor);
+        drawable.setStroke(dp(1), strokeColor);
+        return drawable;
+    }
+
+    private int dp(int value) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(value * density);
+    }
+
+    private int adjustAlpha(int color, float factor) {
+        int alpha = Math.round(Color.alpha(color) * factor);
+        int red = Color.red(color);
+        int green = Color.green(color);
+        int blue = Color.blue(color);
+        return Color.argb(alpha, red, green, blue);
     }
 
     private void drawRouteOnMap(List<String> path) {

@@ -380,14 +380,11 @@
                             android:letterSpacing="0.1"
                             android:layout_marginBottom="20dp" />
 
-                        <TextView
-                            android:id="@+id/tvResultado"
+                        <LinearLayout
+                            android:id="@+id/itineraryContainer"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textSize="17sp"
-                            android:textColor="@color/text_main"
-                            android:lineSpacingExtra="10dp"
-                            android:fontFamily="sans-serif-light" />
+                            android:orientation="vertical" />
 
                     </LinearLayout>
                 </LinearLayout>

@@ -82,6 +82,17 @@ public class Graph {
         return nodes;
     }
 
+    /** Devuelve la distancia directa entre dos nodos conectados o -1 si no hay arista. */
+    public int getDistanceBetween(String from, String to) {
+        List<Edge> edges = adjacencyList.getOrDefault(from, Collections.emptyList());
+        for (Edge edge : edges) {
+            if (edge.to.equals(to)) {
+                return edge.weight;
+            }
+        }
+        return -1;
+    }
+
     // -------------------------------------------------------------------------
 
     public static class Edge {
