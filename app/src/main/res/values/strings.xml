@@ -8,9 +8,17 @@
     <string name="label_resultado">PLAN DE VIAJE</string>
     <string name="label_distancia">DISTANCIA TOTAL</string>
     <string name="label_paradas">PARADAS</string>
+    <string name="label_tiempo_total">TIEMPO TOTAL</string>
+    <string name="label_costo_estimado">COSTO ESTIMADO</string>
+    <string name="label_tipo_camino">TIPO DE CAMINO</string>
+    <string name="label_combustible_co2">COMBUSTIBLE / CO2</string>
     <string name="label_itinerario">ITINERARIO DETALLADO</string>
     <string name="default_distancia">0 km</string>
     <string name="default_paradas">0</string>
+    <string name="default_tiempo">0 min</string>
+    <string name="default_costo">$0 MXN</string>
+    <string name="default_tipo_camino">-</string>
+    <string name="default_combustible">0 L · 0 kg CO2</string>
     <string name="tag_origen">Punto de Inicio</string>
     <string name="tag_destino">Llegada</string>
 </resources>

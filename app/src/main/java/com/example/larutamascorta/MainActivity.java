@@ -36,6 +36,7 @@ import org.osmdroid.bonuspack.routing.RoadManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,8 +44,15 @@ public class MainActivity extends AppCompatActivity {
     private Spinner spinnerOrigen, spinnerDestino;
     private View cardResultado;
     private TextView tvResultado, tvDistanciaInfo, tvParadasInfo;
+    private TextView tvTiempoInfo, tvCostoInfo, tvTipoCaminoInfo, tvCombustibleInfo;
     private MapView mapView;
     private ScrollView scrollView;
+
+    private static final double AVG_SPEED_KMH = 82.0;
+    private static final double STOP_MINUTES = 12.0;
+    private static final double FUEL_EFFICIENCY_KM_PER_L = 12.5;
+    private static final double FUEL_PRICE_MXN_PER_L = 24.20;
+    private static final double CO2_KG_PER_L = 2.31;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +110,10 @@ public class MainActivity extends AppCompatActivity {
         tvResultado     = findViewById(R.id.tvResultado);
         tvDistanciaInfo = findViewById(R.id.tvDistanciaInfo);
         tvParadasInfo   = findViewById(R.id.tvParadasInfo);
+        tvTiempoInfo    = findViewById(R.id.tvTiempoInfo);
+        tvCostoInfo     = findViewById(R.id.tvCostoInfo);
+        tvTipoCaminoInfo = findViewById(R.id.tvTipoCaminoInfo);
+        tvCombustibleInfo = findViewById(R.id.tvCombustibleInfo);
         mapView         = findViewById(R.id.mapView);
         scrollView      = findViewById(R.id.main);
 
@@ -150,6 +162,19 @@ public class MainActivity extends AppCompatActivity {
         cardResultado.setVisibility(View.VISIBLE);
         tvDistanciaInfo.setText(result.totalDistance + " km");
         tvParadasInfo.setText(String.valueOf(result.path.size()));
+
+        int segments = Math.max(1, result.path.size() - 1);
+        int intermediateStops = Math.max(0, result.path.size() - 2);
+        String roadType = estimateRoadType(result.totalDistance, segments);
+        double travelHours = estimateTravelHours(result.totalDistance, intermediateStops);
+        double fuelLiters = estimateFuelLiters(result.totalDistance);
+        double tripCostMxn = estimateTripCost(result.totalDistance, roadType, fuelLiters);
+        double co2Kg = estimateCo2Kg(fuelLiters);
+
+        tvTiempoInfo.setText(formatDuration(travelHours));
+        tvCostoInfo.setText(String.format(Locale.getDefault(), "$%.0f MXN", tripCostMxn));
+        tvTipoCaminoInfo.setText(roadType);
+        tvCombustibleInfo.setText(String.format(Locale.getDefault(), "%.1f L · %.1f kg CO2", fuelLiters, co2Kg));
 
         // Construir itinerario elegante con Spans
         SpannableStringBuilder ssb = new SpannableStringBuilder();
@@ -278,6 +303,55 @@ public class MainActivity extends AppCompatActivity {
             else mapController.setZoom(6.0);
         }
         mapView.invalidate();
+    }
+
+    private double estimateTravelHours(int distanceKm, int intermediateStops) {
+        double drivingTimeHours = distanceKm / AVG_SPEED_KMH;
+        double stopTimeHours = (intermediateStops * STOP_MINUTES) / 60.0;
+        return drivingTimeHours + stopTimeHours;
+    }
+
+    private String estimateRoadType(int distanceKm, int segments) {
+        double averageSegmentDistance = distanceKm / (double) segments;
+        if (averageSegmentDistance >= 260) {
+            return "Autopista de largo recorrido";
+        }
+        if (averageSegmentDistance >= 160) {
+            return "Mixta (autopista y federal)";
+        }
+        return "Carretera regional/libre";
+    }
+
+    private double estimateFuelLiters(int distanceKm) {
+        return distanceKm / FUEL_EFFICIENCY_KM_PER_L;
+    }
+
+    private double estimateTripCost(int distanceKm, String roadType, double fuelLiters) {
+        double tollPerKm;
+        if (roadType.startsWith("Autopista")) {
+            tollPerKm = 1.35;
+        } else if (roadType.startsWith("Mixta")) {
+            tollPerKm = 0.85;
+        } else {
+            tollPerKm = 0.35;
+        }
+        double fuelCost = fuelLiters * FUEL_PRICE_MXN_PER_L;
+        double tollCost = distanceKm * tollPerKm;
+        return fuelCost + tollCost;
+    }
+
+    private double estimateCo2Kg(double fuelLiters) {
+        return fuelLiters * CO2_KG_PER_L;
+    }
+
+    private String formatDuration(double totalHours) {
+        int totalMinutes = (int) Math.round(totalHours * 60);
+        int hours = totalMinutes / 60;
+        int minutes = totalMinutes % 60;
+        if (hours == 0) {
+            return String.format(Locale.getDefault(), "%d min", minutes);
+        }
+        return String.format(Locale.getDefault(), "%dh %02dmin", hours, minutes);
     }
 
     @Override
